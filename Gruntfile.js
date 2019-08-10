@@ -4,14 +4,14 @@ module.exports = function (grunt) {
     grunt.initConfig({
         pkg: grunt.file.readJSON('package.json'),
         ts: {
-            dist: {
+            default: {
                 tsconfig: './tsconfig.json'
             }
         },
         watch: {
             default: {
                 files: ["src/ts/**/*", "index.html", "index.css"], 
-                tasks: ['ts:dist'],
+                tasks: ['ts:default'],
                 options: {
                     livereload: true
                 }                    
@@ -25,11 +25,10 @@ module.exports = function (grunt) {
             }    
         },
         clean: {
-            all: ["build", "dist", "dist.zip", "js13k.zip"],
-            dist: ["ts:dist"]
+            all: ["build", "dist", "dist.zip", "js13k.zip"]
         },
         'closure-compiler': {
-            js13k: {
+            es2015: {
                 closurePath: 'libbuild/closure-compiler-v20190729',
                 js: 'build/out.js',
                 jsOutputFile: 'dist/out.min.js',
@@ -37,8 +36,21 @@ module.exports = function (grunt) {
                 reportFile: 'closure.txt',
                 options: {
                     compilation_level: 'ADVANCED_OPTIMIZATIONS',
-                    language_in: 'ECMASCRIPT6',
-                    language_out: 'ECMASCRIPT6', 
+                    language_in: 'ECMASCRIPT_2015',
+                    language_out: 'ECMASCRIPT_2015', 
+                    externs: 'src/externs/externs.js'
+                }
+            }, 
+            es5: {
+                closurePath: 'libbuild/closure-compiler-v20190729',
+                js: 'build/out.js',
+                jsOutputFile: 'dist/out.min.js',
+                maxBuffer: 500,
+                reportFile: 'closure.txt',
+                options: {
+                    compilation_level: 'ADVANCED_OPTIMIZATIONS',
+                    language_in: 'ECMASCRIPT_2015',
+                    language_out: 'ECMASCRIPT5', 
                     externs: 'src/externs/externs.js'
                 }
             }
@@ -74,7 +86,7 @@ module.exports = function (grunt) {
                 src: ['dist/index.html'],
                 overwrite: true,
                 replacements: [{
-                    from: /build\/bundle\.js/g, 
+                    from: /build\/out\.js/g, 
                     to:"out.min.js"
                 }, { // gut the HTML entirely!
                     from: "</canvas>", 
@@ -89,7 +101,15 @@ module.exports = function (grunt) {
                     from: "<body>", 
                     to: ""
                 }]
-            }
+            },
+            js: {
+                src: ['dist/out.min.js'],
+                overwrite: true,
+                replacements: [{ 
+                    from: "'use strict';", 
+                    to:""
+                }]
+            }, 
         },
         copy: {
             html: {
@@ -137,8 +157,8 @@ module.exports = function (grunt) {
 
     // Default task(s).
     grunt.registerTask('reset', ['clean:all']);
-    grunt.registerTask('prod', ['ts:dist']);
-    grunt.registerTask('dist', ['prod', 'closure-compiler:js13k', 'copy','cssmin','replace:html', 'inline', 'htmlmin']);
+    grunt.registerTask('prod', ['ts']);
+    grunt.registerTask('dist', ['prod', 'closure-compiler:es2015', 'copy','cssmin','replace:html', 'replace:js', 'inline', 'htmlmin']);
     grunt.registerTask('default', ['prod', 'connect', 'watch']);
 
 };
